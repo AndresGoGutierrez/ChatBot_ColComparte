@@ -1,4 +1,3 @@
-# tests/test_semana2.py
 import sys
 sys.path.insert(0, '.')
 from src.retriever import retrieve_context
@@ -45,8 +44,8 @@ def evaluar_categoria(nombre: str, preguntas: list[str],
         top_score = resultado['results'][0]['score'] if tiene_resultados else 0.0
         top_fuente = resultado['results'][0]['source'] if tiene_resultados else 'ninguna'
 
-        # Para preguntas EN corpus: esperamos resultados con score decente
-        # Para preguntas FUERA: esperamos pocos o ningún resultado útil
+        # Para preguntas EN corpus
+        # Para preguntas FUERA
         if espera_resultados:
             acierto = tiene_resultados and top_score >= umbral_minimo
         else:
@@ -68,7 +67,7 @@ def evaluar_categoria(nombre: str, preguntas: list[str],
 
 
 def main():
-    print("\n🔍 TEST SEMANA 2 — Motor de Recuperación\n")
+    print("\n TEST SEMANA 2 — Motor de Recuperación\n")
 
     total_correctas = 0
     total_preguntas = 0

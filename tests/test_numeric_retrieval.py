@@ -46,7 +46,7 @@ def evaluar_queries(model, embeddings, chunks):
             print(f"{chunk['text'][:200]}...")
             print()
 
-        # Validación automática (muy útil para tu profe)
+        # Validación automática
         # Reemplaza la sección de validación automática por esta:
         top3_indices = np.argsort(scores)[::-1][:3]
         cifra_en_top3 = any(

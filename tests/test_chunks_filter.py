@@ -2,7 +2,7 @@ import sys
 import os
 import json
 
-# Para que funcione el import desde raíz del proyecto (buena práctica)
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 def main():

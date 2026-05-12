@@ -1,4 +1,3 @@
-# test_semana1.py
 import numpy as np
 import json
 from sentence_transformers import SentenceTransformer
@@ -12,7 +11,7 @@ model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
 
 print(f"Corpus: {len(chunks)} chunks | Embeddings shape: {embeddings.shape}\n")
 
-# Preguntas de prueba — ajústalas a tu corpus real
+# Preguntas de prueba 
 preguntas = [
     "¿Qué es Colombia Comparte?",
     "¿Cuáles son los programas de la organización?",

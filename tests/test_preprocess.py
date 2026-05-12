@@ -1,6 +1,5 @@
 import sys
 
-# Asegura que Python encuentre tu módulo src
 sys.path.insert(0, '.')
 
 from src.preprocess import drop_structural_headers

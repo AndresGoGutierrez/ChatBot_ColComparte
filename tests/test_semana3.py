@@ -1,4 +1,3 @@
-# tests/test_semana3.py
 import sys
 sys.path.insert(0, '.')
 from src.chatbot import chat
@@ -40,8 +39,8 @@ PRUEBAS = [
 
 
 def main():
-    print("\n🤖 TEST SEMANA 3 — Generación con LLM\n")
-    print("⚠️  Primera ejecución puede tardar ~2 min (descarga del modelo)\n")
+    print("\nTEST SEMANA 3 — Generación con LLM\n")
+    print("Primera ejecución puede tardar ~2 min (descarga del modelo)\n")
 
     correctas = 0
 
@@ -54,7 +53,7 @@ def main():
 
         acierto = any(kw.lower() in respuesta_lower for kw in keywords)
         correctas += int(acierto)
-        estado = "✅" if acierto else "❌"
+        estado = "B" if acierto else "X"
 
         print(f"{estado} RESPUESTA: {respuesta}")
         print(f"   Keywords esperados: {keywords}")
