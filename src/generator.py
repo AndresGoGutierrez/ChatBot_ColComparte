@@ -36,25 +36,15 @@ def _load_model():
 
 def build_messages(query: str, context: str) -> list[dict]:
     system = (
-        "Eres el chatbot oficial de Colombia Comparte. "
-        "REGLA ABSOLUTA: Responde ÚNICAMENTE con información que aparezca "
-        "de forma LITERAL en el contexto recuperado. "
-        "PROHIBIDO inventar nombres, cifras, fechas, números, pasos o datos. "
-        "PROHIBIDO usar conocimiento externo al contexto proporcionado. "
-        "PROHIBIDO inventar formas de contacto, redes sociales o direcciones. "
-        "PROHIBIDO generar listas de pasos si no están en el contexto. "
-        "Si la información no está en el contexto, responde EXACTAMENTE: "
-        f"'{FALLBACK}' — sin agregar nada más."
+        "Eres el asistente oficial de Colombia Comparte. "
+        "Responde SOLO con la información del contexto. "
+        "No inventes datos, cifras, nombres ni pasos. "
+        f"Si la respuesta no está en el contexto, di: '{FALLBACK}'"
     )
     user = (
-        "CONTEXTO RECUPERADO (única fuente de información permitida):\n"
-        f"{context}\n\n"
-        "VERIFICACIÓN OBLIGATORIA: Antes de responder, confirma que la información "
-        "que vas a dar aparece literalmente en el contexto anterior. "
-        "Si no aparece, di exactamente: "
-        f"'{FALLBACK}'\n\n"
-        f"PREGUNTA: {query}\n\n"
-        "RESPUESTA (máximo 3 frases, solo con datos del contexto):"
+        f"CONTEXTO:\n{context}\n\n"
+        f"PREGUNTA: {query}\n"
+        "RESPUESTA (máximo 2 frases, solo con datos del contexto):"
     )
     return [
         {"role": "system", "content": system},
@@ -70,11 +60,18 @@ def truncate_context_safely(results: list[dict], max_words: int = 800) -> str:
     selected    = []
     total_words = 0
 
-    for r in results:
+    for i, r in enumerate(results):
         chunk_words = len(r['text'].split())
         if total_words + chunk_words > max_words:
-            log(f"Contexto truncado antes de chunk {r['id']} "
-                f"(acumulado: {total_words} palabras)", "WARN")
+            if i == 0:
+                # Incluir siempre al menos el primer chunk, recortando el texto
+                words = r['text'].split()[:max_words]
+                text  = ' '.join(words)
+                selected.append(f"[{r['id']} | fuente: {r['source']}]\n{text}")
+                total_words = max_words
+            else:
+                log(f"Contexto truncado antes de chunk {r['id']} "
+                    f"(acumulado: {total_words} palabras)", "WARN")
             break
         selected.append(f"[{r['id']} | fuente: {r['source']}]\n{r['text']}")
         total_words += chunk_words
@@ -148,11 +145,9 @@ def generate_answer(query: str, context: str) -> str:
     with torch.no_grad():
         output_ids = _model.generate(
             **inputs,
-            max_new_tokens=220,
-            do_sample=True,
-            temperature=0.1,   # muy conservador — evita alucinaciones
-            top_p=0.9,
-            repetition_penalty=1.1,
+            max_new_tokens=80,
+            do_sample=False,          # greedy decoding: ~2x más rápido en CPU
+            repetition_penalty=1.15,
             pad_token_id=_tokenizer.eos_token_id
         )
 

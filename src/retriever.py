@@ -1,28 +1,62 @@
 # src/retriever.py
+import re
 import numpy as np
 import json
 from sentence_transformers import SentenceTransformer
 from src.logger import log
 
+try:
+    from rank_bm25 import BM25Okapi
+    _HAS_BM25 = True
+except ImportError:
+    _HAS_BM25 = False
+
 EMBEDDINGS_PATH = "data/embeddings/embeddings.npy"
 CHUNKS_PATH     = "data/chunks/chunks.json"
 MODEL_NAME      = "paraphrase-multilingual-MiniLM-L12-v2"
-DEFAULT_K       = 4       # igual que el docente
-SCORE_THRESHOLD = 0.25    # igual que el docente
+DEFAULT_K       = 4
+SCORE_THRESHOLD = 0.25
+BM25_ALPHA      = 0.72   # peso semántico; 0.28 queda para BM25
 
 _model      = None
 _embeddings = None
 _chunks     = None
+_bm25       = None
+
+
+_STOPWORDS_ES = {
+    "del", "los", "las", "son", "que", "con", "una", "uno", "por",
+    "para", "como", "sus", "hay", "han", "has", "fue", "ser", "est",
+    "esta", "este", "eso", "ese", "esa", "pero", "más", "mas", "muy",
+    "sin", "sobre", "entre", "cuando", "donde", "cual", "cuales",
+    "todo", "toda", "todos", "todas", "cada", "otro", "otra", "otros",
+    "también", "tambien", "puede", "tienen", "tiene", "hacer", "hace",
+}
+
+
+def _tokenize_bm25(text: str) -> list:
+    """Tokenizador BM25: minúsculas, sin puntuación, >3 chars, sin stopwords."""
+    text = text.lower()
+    text = re.sub(r'[^\wáéíóúüñ\s]', ' ', text)
+    return [t for t in text.split() if len(t) > 3 and t not in _STOPWORDS_ES]
 
 
 def _load_resources():
-    global _model, _embeddings, _chunks
+    global _model, _embeddings, _chunks, _bm25
     if _model is None:
         log("Cargando recursos del retriever...", "INFO")
         _model      = SentenceTransformer(MODEL_NAME)
         _embeddings = np.load(EMBEDDINGS_PATH)
         with open(CHUNKS_PATH, 'r', encoding='utf-8') as f:
             _chunks = json.load(f)
+
+        if _HAS_BM25:
+            tokenized = [_tokenize_bm25(c['text']) for c in _chunks]
+            _bm25 = BM25Okapi(tokenized)
+            log("Índice BM25 construido (búsqueda híbrida activa).", "INFO")
+        else:
+            log("rank_bm25 no disponible → solo búsqueda semántica.", "WARN")
+
         log(f"Recursos cargados. {len(_chunks)} chunks disponibles.", "SUCCESS")
 
 
@@ -42,28 +76,41 @@ def retrieve_context(query: str, k: int = DEFAULT_K,
     log(f"QUERY: {query}", "QUERY")
 
     # 1. Embed la query
-    q_emb  = _model.encode([query], normalize_embeddings=True)
+    q_emb   = _model.encode([query], normalize_embeddings=True)
 
-    # 2. Similitud coseno (producto punto porque embeddings están normalizados)
-    scores = (_embeddings @ q_emb.T).flatten()
+    # 2. Similitud coseno semántica
+    sem_scores = (_embeddings @ q_emb.T).flatten()
 
-    # 3. Top-k ordenados por score descendente
+    # 3. BM25 léxico (si está disponible)
+    if _HAS_BM25 and _bm25 is not None:
+        bm25_raw = np.array(_bm25.get_scores(_tokenize_bm25(query)))
+        bm25_max = bm25_raw.max()
+        bm25_norm = bm25_raw / bm25_max if bm25_max > 0 else bm25_raw
+        scores = BM25_ALPHA * sem_scores + (1 - BM25_ALPHA) * bm25_norm
+        log(f"Búsqueda híbrida (α={BM25_ALPHA} semántica + {1-BM25_ALPHA:.2f} BM25)", "INFO")
+    else:
+        scores = sem_scores
+
+    # 4. Top-k ordenados por score combinado descendente
     top_indices = np.argsort(scores)[::-1][:k]
 
-    # 4. Filtrar por umbral
+    # 5. Filtrar por umbral (se usa el score semántico como referencia de calidad)
     results = []
     for idx in top_indices:
-        score = float(scores[idx])
-        if score >= threshold:
+        score     = float(scores[idx])
+        sem_score = float(sem_scores[idx])
+        if sem_score >= threshold:   # umbral sobre score semántico puro
             results.append({
-                "id":     int(idx),
-                "text":   _chunks[idx]['text'],
-                "source": _chunks[idx]['source'],
-                "score":  round(score, 4)
+                "id":        int(idx),
+                "text":      _chunks[idx]['text'],
+                "source":    _chunks[idx]['source'],
+                "score":     round(score, 4),
+                "sem_score": round(sem_score, 4),
             })
 
-    # 5. Logging detallado (útil en sustentación)
-    log(f"Top scores: {[r['score'] for r in results]}", "SCORE")
+    # 6. Logging detallado (útil en sustentación)
+    log(f"Top scores (híbrido): {[r['score'] for r in results]}", "SCORE")
+    log(f"Top scores (semántico): {[r['sem_score'] for r in results]}", "SCORE")
     log(f"Chunks recuperados: {len(results)} de {k} solicitados", "INFO")
 
     if not results:
