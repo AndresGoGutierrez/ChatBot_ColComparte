@@ -1,2 +1,8 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Opcional (si no quieres __init__.py en repo)
+__init__.py
