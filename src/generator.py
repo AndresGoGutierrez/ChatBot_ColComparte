@@ -24,9 +24,11 @@ def _load_model():
         MODEL_ID,
         trust_remote_code=True
     )
+    # float16 solo si hay GPU — en CPU usar float32 para estabilidad
+    dtype = torch.float16 if _device == "cuda" else torch.float32
     _model = AutoModelForCausalLM.from_pretrained(
         MODEL_ID,
-        dtype=torch.float16,
+        dtype=dtype,
         device_map="auto",
         trust_remote_code=True
     )

@@ -43,7 +43,10 @@ def respond(message: str, history: list):
 
     answer, sources = chat_with_sources(message.strip())
 
-    history = history + [[message, answer]]
+    history = history + [
+        {"role": "user",      "content": message},
+        {"role": "assistant", "content": answer},
+    ]
     sources_md = _format_sources(sources)
     return history, "", sources_md
 
@@ -138,6 +141,7 @@ with gr.Blocks(title="ChatBot Colombia Comparte") as demo:
 
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    demo.queue(max_size=3)   # imprescindible para requests de larga duración en CPU
     demo.launch(
         server_name="127.0.0.1",
         share=False,
