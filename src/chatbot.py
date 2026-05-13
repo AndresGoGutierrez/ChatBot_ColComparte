@@ -87,10 +87,16 @@ def chat(query: str, k: int = 3) -> str:
     # Paso 2: recuperar contexto (con query expandida para retrieval)
     retrieval = retrieve_context(expanded, k=k)
 
-    # Paso 3: truncar de forma segura (220 palabras ≈ 350 tokens → ~30s en CPU)
+    # Paso 3: si no hay chunks suficientemente relevantes → fallback directo
+    if not retrieval["found"]:
+        log("Sin chunks relevantes → fallback directo sin LLM", "WARN")
+        from src.generator import FALLBACK
+        return FALLBACK
+
+    # Paso 4: truncar de forma segura (220 palabras ≈ 350 tokens → ~30s en CPU)
     context = truncate_context_safely(retrieval["results"], max_words=220)
 
-    # Paso 4: generar respuesta (con query ORIGINAL para el LLM)
+    # Paso 5: generar respuesta (con query ORIGINAL para el LLM)
     answer = generate_answer(query, context)
 
     log("Pipeline completado.", "SUCCESS")
@@ -109,6 +115,12 @@ def chat_with_sources(query: str, k: int = 3) -> tuple[str, list[dict]]:
 
     expanded  = _expand_query(query)
     retrieval = retrieve_context(expanded, k=k)
+
+    if not retrieval["found"]:
+        log("Sin chunks relevantes → fallback directo sin LLM", "WARN")
+        from src.generator import FALLBACK
+        return FALLBACK, []
+
     context   = truncate_context_safely(retrieval["results"], max_words=220)
     answer    = generate_answer(query, context)
 

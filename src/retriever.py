@@ -14,8 +14,8 @@ except ImportError:
 EMBEDDINGS_PATH = "data/embeddings/embeddings.npy"
 CHUNKS_PATH     = "data/chunks/chunks.json"
 MODEL_NAME      = "paraphrase-multilingual-MiniLM-L12-v2"
-DEFAULT_K       = 4
-SCORE_THRESHOLD = 0.25
+DEFAULT_K       = 2
+SCORE_THRESHOLD = 0.30
 BM25_ALPHA      = 0.72   # peso semántico; 0.28 queda para BM25
 
 _model      = None
