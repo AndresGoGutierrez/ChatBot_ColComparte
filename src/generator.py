@@ -38,15 +38,19 @@ def _load_model():
 
 def build_messages(query: str, context: str) -> list[dict]:
     system = (
-        "Eres el asistente oficial de Colombia Comparte. "
-        "Responde SOLO con la información del contexto. "
-        "No inventes datos, cifras, nombres ni pasos. "
-        f"Si la respuesta no está en el contexto, di: '{FALLBACK}'"
+        "Eres el asistente oficial de Latinoamérica Comparte y Colombia Comparte. "
+        "Responde DIRECTAMENTE con los datos exactos del contexto. "
+        "REGLAS ESTRICTAS: 1) USA solo datos que aparezcan textualmente en el contexto. "
+        "2) NO hagas listas de redes sociales ni plataformas digitales a menos que se pregunte explícitamente por redes sociales. "
+        "3) Si preguntan por contacto o teléfono, responde SOLO con el número de teléfono y correo del contexto. "
+        "4) NO uses frases como 'la pregunta indica', 'esto sugiere' o 'la plataforma'. "
+        "5) Si la respuesta no está en el contexto, di exactamente: "
+        f"'{FALLBACK}'"
     )
     user = (
         f"CONTEXTO:\n{context}\n\n"
         f"PREGUNTA: {query}\n"
-        "RESPUESTA (máximo 2 frases, solo con datos del contexto):"
+        "RESPUESTA (máximo 2 frases, solo con datos literales del contexto):"
     )
     return [
         {"role": "system", "content": system},
@@ -110,7 +114,7 @@ def _verify_answer(answer: str, context: str) -> str:
     # y la respuesta es corta (posiblemente un dato inventado) → fallback
     if len(palabras_respuesta) > 0:
         ratio_nuevo = len(palabras_nuevas) / len(palabras_respuesta)
-        if ratio_nuevo > 0.60 and len(answer.split()) < 15:
+        if ratio_nuevo > 0.75 and len(answer.split()) < 12:
             log(f"Respuesta con {ratio_nuevo:.0%} palabras fuera del contexto → fallback", "WARN")
             return FALLBACK
 
@@ -147,7 +151,7 @@ def generate_answer(query: str, context: str) -> str:
     with torch.no_grad():
         output_ids = _model.generate(
             **inputs,
-            max_new_tokens=80,
+            max_new_tokens=900,
             do_sample=False,          # greedy decoding: ~2x más rápido en CPU
             repetition_penalty=1.15,
             pad_token_id=_tokenizer.eos_token_id
