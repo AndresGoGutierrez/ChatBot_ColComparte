@@ -143,10 +143,10 @@ with gr.Blocks(title="ChatBot Colombia Comparte") as demo:
 if __name__ == "__main__":
     demo.queue(max_size=3)   # imprescindible para requests de larga duración en CPU
     demo.launch(
-        server_name="127.0.0.1",
+        server_name="0.0.0.0",
         share=False,
         show_error=True,
-        inbrowser=True,
+        inbrowser=False,
         theme=gr.themes.Soft(
             primary_hue="orange",
             secondary_hue="yellow",

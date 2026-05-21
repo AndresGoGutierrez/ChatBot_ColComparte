@@ -1,0 +1,30 @@
+services:
+  chatbot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chatbot-colcomparte
+    ports:
+      - "7860:7860"
+    volumes:
+      - hf_cache:/app/.cache/huggingface
+    environment:
+      - PYTHONUNBUFFERED=1
+      - HF_HOME=/app/.cache/huggingface
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+        reservations:
+          memory: 4g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+volumes:
+  hf_cache:
+    driver: local
